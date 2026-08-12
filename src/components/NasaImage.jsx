@@ -13,10 +13,27 @@ import {
   TbRefreshAlert,
 } from "react-icons/tb";
 
+/**
+ * Codes the server marks as worth another attempt. A missing entry is included
+ * because each attempt rolls a fresh date, so the next try asks for a
+ * different day rather than the same gap.
+ */
+const RETRYABLE = new Set([
+  "UPSTREAM_TIMEOUT",
+  "UPSTREAM_ERROR",
+  "OVER_RATE_LIMIT",
+  "NO_APOD_FOR_DATE",
+]);
+const MAX_TRIES = 3;
+const FIRST_APOD = "1995-06-16";
+
 function NasaImage() {
   const [imageData, setImageData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Kept apart from `error` so a failed narration cannot blank out an image
+  // that loaded perfectly well.
+  const [ttsError, setTtsError] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false); // Track image load status
   const [imageAspectRatio, setImageAspectRatio] = useState(null);
 
@@ -51,7 +68,7 @@ function NasaImage() {
   /**
    * Grab a random NASA image
    */
-  const fetchRandomImage = async (retryCount = 3) => {
+  const fetchRandomImage = async () => {
     // Reset states
     setHasExpertStarted(false);
     setIsSpeaking(false);
@@ -61,51 +78,69 @@ function NasaImage() {
     setImageData(null);
     setLoading(true);
     setError(null);
+    setTtsError(null);
     setIsImageLoaded(false); // Reset image loaded state
     setImageAspectRatio(null);
 
-    const randomDate = getRandomDate(
-      "1995-06-16",
-      new Date().toISOString().split("T")[0]
-    );
+    const today = new Date().toISOString().split("T")[0];
+    let message = "Failed to fetch image. Please try again.";
 
-    try {
-      const response = await fetch(`/api/nasa?date=${randomDate}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.error?.code === "OVER_RATE_LIMIT" && retryCount > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          return fetchRandomImage(retryCount - 1);
-        }
-        throw new Error(errorData.error?.message || "Failed to fetch image");
+    for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+      if (attempt > 1) {
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt - 1)));
       }
 
-      const data = await response.json();
-      setImageData(data);
-
-      if (data.media_type === "image") {
-        const img = new Image();
-        img.onload = () => {
-          setImageAspectRatio(img.naturalHeight / img.naturalWidth);
-          setLoading(false);
-        };
-        img.onerror = () => {
-          console.error("Failed to load image for getting dimensions");
-          setLoading(false);
-          setError("There was an issue loading the image details.");
-        };
-        img.src = data.url;
-      } else {
-        setImageAspectRatio(9 / 16); // Default 16:9 for videos
-        setLoading(false);
-        if (data.media_type !== "image") {
-          setIsImageLoaded(true); // For videos, consider it "loaded"
-        }
+      let response;
+      try {
+        response = await fetch(`/api/nasa?date=${getRandomDate(FIRST_APOD, today)}`);
+      } catch {
+        message = "Network error. Please try again.";
+        continue;
       }
-    } catch (err) {
-      setError(err.message || "Failed to fetch image. Please try again.");
-      setLoading(false);
+
+      if (response.ok) {
+        showMedia(await response.json());
+        return;
+      }
+
+      // A platform-level failure (the function being killed mid-stall) answers
+      // with plain text, not JSON. Parsing that unguarded threw a SyntaxError
+      // that reached the user as "Unexpected token 'A'".
+      const body = await response.json().catch(() => null);
+      const code = body?.error?.code;
+      message = body?.error?.message || `Request failed (${response.status}).`;
+
+      // An unreadable body means the platform answered, not the handler — that
+      // is the stall case, so it is worth another attempt.
+      if (code !== undefined && !RETRYABLE.has(code)) break;
     }
+
+    setError(message);
+    setLoading(false);
+  };
+
+  /** Show an APOD entry, sizing the placeholder from the real media first. */
+  const showMedia = (data) => {
+    setImageData(data);
+
+    if (data.media_type !== "image") {
+      setImageAspectRatio(9 / 16); // Default 16:9 for videos
+      setLoading(false);
+      setIsImageLoaded(true); // For videos, consider it "loaded"
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      setImageAspectRatio(img.naturalHeight / img.naturalWidth);
+      setLoading(false);
+    };
+    img.onerror = () => {
+      console.error("Failed to load image for getting dimensions");
+      setLoading(false);
+      setError("There was an issue loading the image details.");
+    };
+    img.src = data.url;
   };
 
   /**
@@ -121,6 +156,7 @@ function NasaImage() {
 
     stopAudio();
     setTtsLoading(true);
+    setTtsError(null);
 
     try {
       // Rewrite explanation
@@ -153,9 +189,8 @@ function NasaImage() {
 
       // Start puppet + audio
       startPuppetAndPlay(newAudioUrl);
-      setError(null);
     } catch (err) {
-      setError(err.message || "Error generating TTS explanation.");
+      setTtsError(err.message || "Error generating the audio explanation.");
       console.error(err);
     } finally {
       setTtsLoading(false);
@@ -186,7 +221,10 @@ function NasaImage() {
 
       {/* Next Image Button */}
       <button
-        onClick={fetchRandomImage}
+        // Wrapped, not passed directly: as a bare handler the click event
+        // arrived as the function's first argument, which used to be the
+        // retry counter.
+        onClick={() => fetchRandomImage()}
         disabled={loading}
         className="group bg-green-300 text-black w-24 h-14 rounded-xl 
                    fixed bottom-10 inset-x-0 mx-auto flex items-center 
@@ -215,7 +253,7 @@ function NasaImage() {
         >
           <div className={ttsLoading ? "animate-spin" : ""}>
             <div className="sm:group-hover:rotate-12 duration-300 ease-in-out">
-              {!error ? (
+              {!ttsError ? (
                 ttsLoading ? (
                   <TbLoader2 />
                 ) : (
@@ -247,6 +285,15 @@ function NasaImage() {
       {error && !imageData && (
         <p style={{ color: "red" }} className="absolute top-20 left-10">
           Error: {error}
+        </p>
+      )}
+
+      {/* A failed narration used to be invisible — the gate above hid it
+          whenever an image was on screen, so the only hint was the button
+          icon changing. */}
+      {ttsError && (
+        <p className="fixed bottom-28 left-5 right-5 sm:left-auto sm:right-10 sm:top-48 sm:bottom-auto sm:max-w-xs z-50 rounded-lg bg-red-900/80 px-3 py-2 text-sm text-red-100">
+          {ttsError}
         </p>
       )}
 
