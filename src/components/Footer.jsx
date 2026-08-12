@@ -20,7 +20,7 @@ export default function Footer() {
 
         {/* Portfolio link icon */}
         <a
-          href="https://moe1011.github.io/"
+          href="https://www.son.moe"
           target="_blank"
           rel="noopener noreferrer"
           className="text-slate-400 hover:text-green-300 transition-colors text-2xl"
