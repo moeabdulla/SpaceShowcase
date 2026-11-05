@@ -1,42 +1,23 @@
 import axios from "axios";
 
-/**
- * NASA's APOD API is mostly fast (~400ms) but intermittently stalls for 20-30s
- * before returning a 503. A sweep of 60 random dates through this endpoint hit
- * that ~7% of the time. With no timeout on the request, the stall outlived the
- * platform's function limit and Vercel killed us with a plain-text
- * FUNCTION_INVOCATION_TIMEOUT — which the client then tried to parse as JSON.
- *
- * The stall is random rather than date-specific: the same date that hung for
- * 28s answered in 0.43s on the next attempt. So a short timeout plus a retry
- * hides it inside a single request, which is why this retries here rather than
- * leaving it to the client.
- */
+import { apodEndpoint, normalizeApod, validApodDate } from "../lib/apod.js";
+
+// NASA retired the original scraper API after moving APOD to NASA Science.
+// Keep a bounded retry budget, but consume the new structured feed directly.
 const PER_ATTEMPT_MS = 3000;
 /** Total budget, kept under the platform's function ceiling with headroom. */
 const TOTAL_BUDGET_MS = 8000;
 const MAX_ATTEMPTS = 3;
-
-/** Only ever the APOD date form. The old sanitiser stripped offending
- *  characters instead of rejecting, so "20xx" survived as "20". */
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const fail = (res, status, code, message) =>
   res.status(status).json({ error: { code, message } });
 
 export default async function handler(req, res) {
   const raw = typeof req.query.date === "string" ? req.query.date.trim() : "";
-  if (raw && !DATE_RE.test(raw)) {
-    return fail(res, 400, "INVALID_DATE", "Date must be formatted YYYY-MM-DD.");
+  if (raw && !validApodDate(raw)) {
+    return fail(res, 400, "INVALID_DATE", "Choose an APOD date from 1995-06-16 through today (YYYY-MM-DD).");
   }
   const date = raw || undefined;
-
-  const NASA_API_KEY = process.env.NASA_API_KEY;
-  if (!NASA_API_KEY) {
-    // Without this the key goes out as `undefined`, axios drops the param, and
-    // NASA answers 403 — a confusing way to learn the env var is missing.
-    return fail(res, 500, "MISSING_API_KEY", "NASA_API_KEY is not configured.");
-  }
 
   const startedAt = Date.now();
   let last = { status: 504, code: "UPSTREAM_TIMEOUT", message: "NASA did not respond in time." };
@@ -46,21 +27,20 @@ export default async function handler(req, res) {
     if (remaining <= 0) break;
 
     try {
-      const response = await axios.get("https://api.nasa.gov/planetary/apod", {
-        params: { api_key: NASA_API_KEY, date },
+      const response = await axios.get(apodEndpoint(date), {
         timeout: Math.min(PER_ATTEMPT_MS, remaining),
       });
 
-      // Past APODs never change, so let the edge serve repeats.
-      res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
-      return res.status(200).json({
-        ...response.data,
-        rateLimit: {
-          limit: response.headers["x-ratelimit-limit"],
-          remaining: response.headers["x-ratelimit-remaining"],
-          reset: response.headers["x-ratelimit-reset"],
-        },
-      });
+      let entry;
+      try {
+        entry = normalizeApod(response.data, date);
+      } catch {
+        return fail(res, 502, "INVALID_APOD", "NASA returned an unavailable entry. Please try another image.");
+      }
+      res.setHeader("Cache-Control", date
+        ? "public, s-maxage=86400, stale-while-revalidate=604800"
+        : "public, s-maxage=300, stale-while-revalidate=600");
+      return res.status(200).json(entry);
     } catch (error) {
       const status = error.response?.status;
 
@@ -81,7 +61,7 @@ export default async function handler(req, res) {
 
       console.warn(
         `NASA attempt ${attempt}/${MAX_ATTEMPTS} failed (${last.code}):`,
-        error.response?.data || error.message,
+        error.code || error.message,
       );
     }
   }

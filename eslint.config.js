@@ -39,7 +39,7 @@ export default [
     // The serverless handlers run on Node, not in the browser, so `process`
     // is legitimately defined there. Without this every api/ file reported a
     // no-undef error and `npm run lint` never passed.
-    files: ['api/**/*.js'],
+    files: ['api/**/*.js', 'lib/**/*.js', 'tests/**/*.js'],
     languageOptions: { globals: globals.node },
   },
 ]

@@ -8,12 +8,24 @@ export default function useAudioLogic() {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const dataArrayRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   /**
    * Ensure the audio context is unlocked and resumed (especially for iOS).
    */
+  const prepareAudio = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext ||
+        window.webkitAudioContext)();
+    }
+    unlockAudioContext();
+  };
+
   const unlockAudioContext = () => {
-    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+    if (
+      audioContextRef.current &&
+      audioContextRef.current.state === "suspended"
+    ) {
       audioContextRef.current
         .resume()
         .catch((err) => console.error("Failed to unlock audio context:", err));
@@ -26,58 +38,58 @@ export default function useAudioLogic() {
    */
   function playAudio(url) {
     unlockAudioContext();
-  
+
     // If audio already loaded for this URL, just resume
     if (audioRef.current && audioRef.current.src === url) {
       audioContextRef.current
         ?.resume()
         .then(() => {
           audioRef.current.play().catch(console.error);
-          monitorAudioVolume();
-          setIsAudioPlaying(true);
+          // onplay starts the single volume-monitoring loop.
         })
         .catch((err) => console.error("Failed to resume audio context:", err));
       return;
     }
-  
+
     stopAudio(); // Stop and clean up any previous audio
-  
+
     const newAudio = new Audio(url);
     audioRef.current = newAudio;
-  
+
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext ||
+        window.webkitAudioContext)();
     }
-  
+
     // Create or reconnect analyser
     if (!analyserRef.current) {
       const analyser = audioContextRef.current.createAnalyser();
       analyser.fftSize = 256; // Smaller = faster updates
       analyserRef.current = analyser;
-  
+
       dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
     }
-  
+
     // Always reconnect media element source
     const source = audioContextRef.current.createMediaElementSource(newAudio);
     source.connect(analyserRef.current);
     analyserRef.current.connect(audioContextRef.current.destination);
-  
+
     newAudio.onplay = () => {
       setIsAudioPlaying(true);
       monitorAudioVolume();
     };
-  
+
     newAudio.onpause = () => {
       setIsAudioPlaying(false);
       setIsSpeaking(false);
     };
-  
+
     newAudio.onended = () => {
       setIsAudioPlaying(false);
       setIsSpeaking(false);
     };
-  
+
     // Ensure AudioContext is resumed before starting playback
     audioContextRef.current
       ?.resume()
@@ -92,10 +104,14 @@ export default function useAudioLogic() {
    */
   function monitorAudioVolume() {
     if (!analyserRef.current || !dataArrayRef.current) return;
+    cancelAnimationFrame(animationFrameRef.current);
 
     const checkVolume = () => {
-      if (!audioRef.current || audioRef.current.paused || audioRef.current.ended) {
-        console.log("Audio paused or ended. Stopping volume monitoring.");
+      if (
+        !audioRef.current ||
+        audioRef.current.paused ||
+        audioRef.current.ended
+      ) {
         setIsSpeaking(false);
         return;
       }
@@ -108,16 +124,17 @@ export default function useAudioLogic() {
 
       setIsSpeaking(volume > 3500); // Set threshold
 
-      requestAnimationFrame(checkVolume);
+      animationFrameRef.current = requestAnimationFrame(checkVolume);
     };
 
-    requestAnimationFrame(checkVolume);
+    animationFrameRef.current = requestAnimationFrame(checkVolume);
   }
 
   /**
    * Stop and clean up audio playback.
    */
   function stopAudio() {
+    cancelAnimationFrame(animationFrameRef.current);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -148,5 +165,6 @@ export default function useAudioLogic() {
     playAudio,
     stopAudio,
     togglePlayPause,
+    prepareAudio,
   };
 }

@@ -10,13 +10,13 @@ const TTSTest = () => {
         "/api/generateTTS",
         { text: defaultText },
         {
-          // We expect binary audio (MP3) back
+          // We expect binary audio (WAV) back
           responseType: "arraybuffer",
         }
       );
 
       // Convert binary data to a Blob, then create a URL
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+      const audioBlob = new Blob([response.data], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Play the audio

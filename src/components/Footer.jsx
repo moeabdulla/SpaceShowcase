@@ -1,43 +1,21 @@
-import { TbBrandGithub, TbAddressBook, TbBrandLinkedin } from "react-icons/tb";
-
+import { TbArrowUpRight } from "react-icons/tb";
 export default function Footer() {
   return (
-    <footer className="flex flex-col items-center justify-center">
-      <p className="text-md text-slate-400">
-        Created by Mohammed Abdulla
-      </p>
-
-      <div className="flex space-x-4">
-        {/* GitHub icon link */}
-        <a
-          href="https://github.com/moe1011"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-400 hover:text-violet-300 transition-colors text-2xl"
-        >
-          <TbBrandGithub />
+    <footer className="site-footer shell">
+      <span>A small place for big discoveries.</span>
+      <div>
+        <span>Imagery & stories from NASA APOD</span>
+        <a href="https://www.son.moe" target="_blank" rel="noreferrer">
+          Made by Mohammed <TbArrowUpRight />
         </a>
-
-        {/* Portfolio link icon */}
         <a
-          href="https://www.son.moe"
+          href="https://github.com/moe1011/SpaceShowcase"
           target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-400 hover:text-green-300 transition-colors text-2xl"
+          rel="noreferrer"
         >
-          <TbAddressBook  />
-        </a>
-
-        {/* LinkedIn link icon */}
-        <a
-          href="https://www.linkedin.com/in/mohammed-s-abdulla/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-400 hover:text-blue-300 transition-colors text-2xl"
-        >
-          <TbBrandLinkedin />
+          GitHub <TbArrowUpRight />
         </a>
       </div>
     </footer>
-  )
+  );
 }
