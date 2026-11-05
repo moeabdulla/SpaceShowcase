@@ -10,6 +10,6 @@ Sources:
 
 Pricing checked November 5: Mini text input $0.60/M tokens; audio output $20/M tokens. No microphone/audio input is used. Keep narrations to 35–55 words, use a single summarise-and-speak request rather than the old GPT-4.1 mini rewrite + speech pipeline, cap output tokens/audio size, close the connection on completion/error/cancellation, and reuse audio on replay. No cost is incurred until the visitor requests narration. The serverless handler returns a WAV compatible with the existing player/puppet; server credentials never reach the browser.
 
-Voice: marin. AI voice disclosure is visible. Configured Vercel function limit 30s; upstream request budget 25s. Legacy rewrite route remains available but the app no longer calls it.
+Voice: Cedar, with a warm lower-register masculine delivery. The owner requested removal of the narration-duration caption. Configured Vercel function limit 30s; upstream request budget 25s. Legacy rewrite route remains available but the app no longer calls it.
 
 Validation: a live request with the project's existing local credential returned a valid 909,644-byte WAV (~19 seconds), with a 50-word astronomy narration based on supplied Enceladus facts. Tests cover event flow, WAV headers, failures, cancellation, timeout and length limits. No secrets or environment files were changed.

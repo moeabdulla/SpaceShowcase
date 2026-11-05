@@ -1,142 +1,102 @@
+<div align="center">
+
 # Space Showcase
 
-**Space Showcase** is an engaging web application that highlights images and videos from NASA's Astronomy Picture of the Day (APOD) API. It enhances the user experience with audio-based expert explanations and interactive animations. Using OpenAI's GPT-4o for natural language processing and OpenAI's TTS for lifelike speech synthesis, users can enjoy seamless and immersive interactions with a cosmic-themed UI.
+### A little curiosity. An infinite universe.
 
----
+A small observatory for discovering NASA imagery, with a talking cosmic companion to explain the view.
 
-## Features
+[**Enter the observatory ↗**](https://space-showcase.vercel.app/) · [Portfolio](https://www.son.moe)
 
-### 🌌 Explore Space Content
-- Fetch daily astronomy images or videos from NASA's APOD API.
-- Display media with detailed explanations and metadata (title, date).
+[![Space Showcase: Mars in the viewing window, an animated puppet guide, and the astronomy story below](docs/images/observatory.png)](https://space-showcase.vercel.app/)
 
-### 🗣️ Expert Audio Explanations
-- Rewrite image explanations into conversational text using OpenAI's GPT-4.
-- Convert the rewritten text into lifelike speech with OpenAI's TTS API.
+</div>
 
-### 🤖 Interactive Expert Puppet
-- A fun, animated puppet "expert" reacts in sync with the audio.
-- The puppet "talks" by moving its head while audio is playing.
+## Explore
 
-### 🎨 Modern UI and Visual Enhancements
-- Gradient background with a cosmic theme.
-- Special rainbow-animated buttons for interactive features.
-- Responsive design optimized for various screen sizes.
+- **Let curiosity lead.** Discover a random image or video from NASA’s Astronomy Picture of the Day archive, dating back to June 1995.
+- **Take a closer look.** Click anywhere in the image window to expand it, including the surrounding space. Escape returns you to the observation.
+- **Hear the short story.** Request a brief, AI-generated astronomy narration. The original puppet mascot moves its mouth in response to the audio; pause and replay without generating it again.
+- **Read the science.** Each observation includes its archive date, NASA explanation, available image credits, and original source link.
+- **Settle into the observatory.** A dark sky, slow orbital rings and occasional shooting stars frame the imagery. Responsive layouts, keyboard controls and reduced-motion support keep exploration comfortable.
 
----
+## Built with
 
-## Demo
+| Area | Technology |
+| --- | --- |
+| Interface | React 18, Vite, React Icons |
+| Visuals | Custom CSS, Tailwind CSS 3, CSS animations |
+| Astronomy | NASA Science’s structured APOD feed, normalized by a server-side handler |
+| Narration | OpenAI Realtime API, `gpt-realtime-2.1-mini`, Cedar voice |
+| Playback | WAV audio, Web Audio API volume analysis for the puppet animation |
+| Backend & hosting | Node.js Vercel Functions, outgoing WebSocket connection for narration, Vercel hosting |
+| Checks | ESLint, Node.js built-in test runner |
 
-🚀 **Live Demo**: [Click Here](https://space-showcase.vercel.app/)
+### How an observation works
 
----
+1. The browser chooses an archive date and requests `/api/nasa?date=YYYY-MM-DD`.
+2. The server fetches NASA’s entry, normalizes its image/video source, and returns plain text with metadata. Bounded retries and caching handle upstream delays.
+3. When you press **Listen to the story**, `/api/generateTTS` sends the supplied astronomy facts to Realtime Mini. A single request summarizes and speaks the explanation, returning a short WAV.
+4. The browser plays that audio and uses its volume to animate the mascot. The generated audio is reused for that observation until you choose another discovery.
 
-## Technologies Used
+The current NASA feed needs **no NASA API key**. Narration uses a server-side `OPENAI_API_KEY`; the browser receives neither that credential nor access to your microphone. The older `api/rewriteExplanation.js` route remains in the repository, but the current app does not use the former separate rewrite-and-TTS flow.
 
-- **Frontend Framework**: React (with hooks)
-- **Styling**: Tailwind CSS
-- **Icons**: React Icons
-- **APIs**:
-  - **NASA's APOD API**: Fetches stunning images and videos of space.
-  - **OpenAI GPT-4**: Rewrites technical explanations into natural, conversational text.
-  - **OpenAI TTS API**: Generates lifelike audio for expert explanations.
-- **Audio Handling**: Web Audio API for volume detection and animations.
-- **Hosting**: Vercel
+## Run locally
 
----
+Use a current Node.js LTS release and npm. For the complete app, use Vercel CLI so the `/api` functions run alongside the frontend.
 
-## Setup Instructions
-
-### 1. Clone the Repository
 ```bash
 git clone https://github.com/moe1011/SpaceShowcase.git
 cd SpaceShowcase
+npm ci
+cp .env.example .env.local
+```
 
-2. Install Dependencies
+Set `OPENAI_API_KEY` in `.env.local` to enable narration, then start the app:
 
-npm install
+```bash
+npx vercel dev
+```
 
-3. Set Up Environment Variables
-	•	Create a .env file in the root directory.
-	•	Add your API keys:
+Follow the CLI prompts to link or create your Vercel project. If you already have access to its development environment variables, you can use `vercel env pull .env.local` instead of copying the example.
 
-NASA_API_KEY=your-nasa-api-key
-OPENAI_API_KEY=your-openai-api-key
+Photos still work without an OpenAI key; the narration control reports that audio is not configured. `npm run dev` runs the Vite frontend alone and does not serve the `/api` handlers.
 
+### Checks
 
+```bash
+npm run lint
+npm test
+npm run build
+```
 
-4. Install Vercel CLI for Local Testing
-	•	Since the app is hosted on Vercel, use their CLI for local testing:
+Tests cover APOD date validation and media normalization, narration event handling, WAV encoding, cancellation, timeouts and audio limits. They use mocked narration sockets and do not make paid API calls.
 
-npm install -g vercel
+### Deploy
 
+Import the repository into Vercel and add `OPENAI_API_KEY` to the desired deployment environments. The Vite build outputs to `dist`; Vercel serves the Node functions from `api/`. The narration function’s 30-second duration is configured in `vercel.json`.
 
-	•	Use vercel dev to run the app locally instead of npm start:
+```bash
+npx vercel --prod
+```
 
-vercel dev
+## Project map
 
-
-
-5. Deploy to Vercel
-	•	Run vercel to deploy your project:
-
-vercel
-
-File Structure
-
+```text
 src/
-├── components/
-│   ├── NasaImage.jsx        # Main component for fetching and displaying space content
-│   ├── Footer.jsx           # Footer with GitHub and portfolio links
-│   ├── ExpertPuppet.jsx     # Animated puppet reacting to audio
-│   └── hooks/
-│       └── useAudioLogic.js # Custom hook for managing audio and animations
-├── App.jsx                  # App container
-├── App.css                  # App-level styles
-└── index.js                 # Entry point
+  components/       Observation viewer, mascot, star field and footer
+  hooks/            Observation lifecycle and audio playback/analysis
+  index.css         Observatory visual system and responsive layouts
+api/
+  nasa.js           NASA feed proxy, caching and bounded retries
+  generateTTS.js    Narration endpoint
+lib/
+  apod.js           Feed normalization and validation
+  narration.js      Realtime session lifecycle and PCM-to-WAV conversion
+tests/              API normalization and narration regression tests
+docs/               Migration notes and design reference
+```
 
-Key Features
+## Credits
 
-1. Fetch and Display Space Content
-	•	Randomly fetch images or videos from NASA’s APOD API.
-	•	Display media with explanations, titles, and metadata.
-
-2. Enhanced Audio Explanations
-	•	Rewrite technical NASA explanations into conversational text with OpenAI’s GPT-4.
-	•	Generate engaging, lifelike audio explanations using OpenAI’s TTS API.
-
-3. Interactive Puppet Animation
-	•	Reacts to audio by moving in sync with detected volume levels.
-	•	Slides in when triggered, adding a fun, educational touch.
-
-4. Responsive Design
-	•	Fully responsive layout for mobile, tablet, and desktop screens.
-	•	Gradient cosmic background adds to the space-themed aesthetic.
-
-How It Works
-	1.	Random NASA Media:
-	•	Click the Next Image button to fetch a random image or video.
-	•	View the media along with its explanation.
-	2.	Expert Explanations:
-	•	Click the Glowing Expert Explanation button to:
-	1.	Rewrite the explanation using OpenAI GPT-4.
-	2.	Generate an audio version using OpenAI TTS.
-	•	Watch the puppet animate as it “speaks” the explanation.
-
-Acknowledgments
-	•	NASA APOD API: For providing stunning daily space content.
-	•	OpenAI GPT-4: For rewriting technical explanations into conversational language.
-	•	OpenAI TTS: For generating lifelike audio that complements the expert puppet.
-	•	React Icons: For beautifully designed, lightweight icons.
-	•	Tailwind CSS: For modern and responsive UI design.
-	•	Web Audio API: For enabling dynamic volume-based animations.
-	•	Vercel: For seamless deployment and local development support.
-
-
-Developer Contact
-
-💼 Portfolio: https://www.son.moe
-🐙 GitHub: https://github.com/moe1011
-📧 Email: moe.a1011@gmail.com
-
-Feel free to reach out for collaboration or feedback! 🚀
+Built by [Mohammed Abdulla](https://www.son.moe). Astronomy imagery and explanations come from [NASA APOD](https://science.nasa.gov/apod/archive/); individual observations retain their available source credits. Preview image: NASA / USGS / Viking Project. Narration is generated with OpenAI.

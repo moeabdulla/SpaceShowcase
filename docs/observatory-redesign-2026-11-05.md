@@ -1,6 +1,6 @@
 # Observatory redesign — local review
 
-The owner asked for a more visual, welcoming space experience, keeping the original puppet mascot. Changes remain local until publishing is approved.
+The owner asked for a more visual, welcoming space experience, keeping the original puppet mascot. Reviewed locally and published after owner approval.
 
 ## Research and design decisions
 
@@ -27,3 +27,5 @@ Validation: lint, production build and 12 API/narration regression tests pass. B
 - Changed the voice from Marin to Cedar with a lower-register masculine delivery. Removed the narration-duration line at the owner's request.
 - Added slow orbital rotation and occasional shooting stars, disabled for reduced-motion preferences.
 - Header link corrected to https://science.nasa.gov/apod/archive/ and checked against the live NASA page.
+
+The entire image viewing area opens the expanded dialog, including letterboxed space around the source image.
