@@ -41,7 +41,7 @@
   "main": "eslint.config.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/moe1011/SpaceShowcase.git"
+    "url": "git+https://github.com/moeabdulla/SpaceShowcase.git"
   },
   "keywords": [
     "astronomy",
@@ -55,7 +55,7 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/moe1011/SpaceShowcase/issues"
+    "url": "https://github.com/moeabdulla/SpaceShowcase/issues"
   },
   "homepage": "https://space-showcase.vercel.app/"
 }

@@ -5,11 +5,11 @@ export default function Footer() {
       <span>A small place for big discoveries.</span>
       <div>
         <span>Imagery & stories from NASA APOD</span>
-        <a href="https://www.son.moe" target="_blank" rel="noreferrer">
+        <a href="https://moeabdulla.com" target="_blank" rel="noreferrer">
           Made by Mohammed <TbArrowUpRight />
         </a>
         <a
-          href="https://github.com/moe1011/SpaceShowcase"
+          href="https://github.com/moeabdulla/SpaceShowcase"
           target="_blank"
           rel="noreferrer"
         >

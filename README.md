@@ -6,7 +6,7 @@
 
 A small observatory for discovering NASA imagery, with a talking cosmic companion to explain the view.
 
-[**Enter the observatory ↗**](https://space-showcase.vercel.app/) · [Portfolio](https://www.son.moe)
+[**Enter the observatory ↗**](https://space-showcase.vercel.app/) · [Portfolio](https://moeabdulla.com)
 
 [![Space Showcase: Mars in the viewing window, an animated puppet guide, and the astronomy story below](docs/images/observatory.png)](https://space-showcase.vercel.app/)
 
@@ -46,7 +46,7 @@ The current NASA feed needs **no NASA API key**. Narration uses a server-side `O
 Use a current Node.js LTS release and npm. For the complete app, use Vercel CLI so the `/api` functions run alongside the frontend.
 
 ```bash
-git clone https://github.com/moe1011/SpaceShowcase.git
+git clone https://github.com/moeabdulla/SpaceShowcase.git
 cd SpaceShowcase
 npm ci
 cp .env.example .env.local
@@ -99,4 +99,4 @@ docs/               Migration notes and design reference
 
 ## Credits
 
-Built by [Mohammed Abdulla](https://www.son.moe). Astronomy imagery and explanations come from [NASA APOD](https://science.nasa.gov/apod/archive/); individual observations retain their available source credits. Preview image: NASA / USGS / Viking Project. Narration is generated with OpenAI.
+Built by [Mohammed Abdulla](https://moeabdulla.com). Astronomy imagery and explanations come from [NASA APOD](https://science.nasa.gov/apod/archive/); individual observations retain their available source credits. Preview image: NASA / USGS / Viking Project. Narration is generated with OpenAI.
